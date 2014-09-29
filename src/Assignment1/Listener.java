@@ -2,6 +2,8 @@
  * (c) University of Zurich 2014
  */
 
+package Assignment1;
+
 import java.net.*;
 import java.io.*;
 
@@ -13,7 +15,9 @@ public class Listener
       int port = Integer.parseInt(args[1]);
       DataInputStream streamIn = null;
       DataOutputStream streamOut = null;
-      Socket clientSocket;
+      Socket clientSocket = null;
+      BufferedReader input = null;
+      String received = null;
       
 	  // create connection to server
 	  // send the string  "LISTENER" to server first!!
@@ -24,7 +28,7 @@ public class Listener
       // Try to open connection and streams
       try {
     	  clientSocket = new Socket(serverName, port);
-    	  streamIn = new DataInputStream(clientSocket.getInputStream());
+    	  input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
     	  streamOut = new DataOutputStream(clientSocket.getOutputStream());
       }
       catch(IOException e) {
@@ -34,25 +38,19 @@ public class Listener
       // Try to send announcement message
       if(streamOut != null) {
     	  try {
-    		  streamOut.writeBytes("LISTENER");
+    		  streamOut.writeBytes("LISTENER\n");
+    		  while((received = input.readLine()) != null) {
+    			  System.out.println(received);
+    		  }
     	  }
     	  catch(IOException e) {
     		  System.err.println(e);
     	  }
       }
       
-      // Receive messages from server
-      if(streamIn != null) {
-    	  try {
-    		  String received;
-    		  while((received = streamIn.readLine()) != null) {
-    			  System.out.println(received);
-    		  }
-    	  }
-    	  catch(IOException e) {
-    		  System.out.println(e);
-    	  }
-      }
-      
+      System.out.println("Announcement sent");
+   	  
+   	  // Close ressources
+   	  
    }
 }

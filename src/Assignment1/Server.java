@@ -2,8 +2,11 @@
  * (c) University of Zurich 2014
  */
 
+package Assignment1;
+
 import java.net.*;
 import java.io.*;
+import java.util.ArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class Server {
@@ -11,6 +14,7 @@ public class Server {
   
   // the data structure to store incoming messages, you are also free to implement your own data structure.
   static LinkedBlockingQueue<String> messageStore =  new LinkedBlockingQueue<String>();
+  static ArrayList<String> history = new ArrayList<String>();
 
   // Listen for incoming client connections and handle them
   public static void main(String[] args) {
@@ -36,7 +40,7 @@ public class Server {
     	server = new ServerSocket(port);
     }
     catch(IOException e) {
-    	System.out.println(e);
+    	System.out.println("Cannot open port " + port + ", " + e);
     }
     
     // Loop for accepting new connections, gives them to a new thread
@@ -59,38 +63,60 @@ class HandleClient implements Runnable {
 	
 	public HandleClient(Socket clientSocket) {
 		this.clientSocket = clientSocket;
+		System.out.println("Thread started");
 	}
 	
 	public void run () {
 		try {
 			// Stream initialization
+			System.out.println("Initializing streams");
 			BufferedReader input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 			DataOutputStream output = new DataOutputStream(clientSocket.getOutputStream());
+			System.out.println("Streams initialized");
+			boolean isFirstLine = true;
+			String firstLine = null;
+			String line;
 			
 			// Reads first line to distinguish between listener and producer
-			String firstLine = input.readLine();
-			
-			// Stores top String of messages to check against new entries
-			String topString = Server.messageStore.peek();
-			String checkString;
-			
-			if(firstLine == "LISTENER") {
-				Object[] queue = Server.messageStore.toArray();
-				for(int i = 0; i < queue.length; i++) {
-					output.writeBytes(queue[i].toString());
+			while((line = input.readLine()) != null) {
+				if(isFirstLine) {
+					firstLine = line;
+					System.out.println(firstLine);
 				}
-				while(true) {
-					checkString = Server.messageStore.peek();
-					if(topString != checkString) {
-						output.writeBytes(checkString);
-						topString = checkString;
+				
+				if(firstLine.equals("LISTENER")) {
+					// If this is the first iteration, send all past messages to listener
+					if(isFirstLine) {
+						for(int i = Server.history.size() - 1; i > 0; i--) {
+							System.out.println("To Listener: " + Server.history.get(i));
+							output.writeBytes(Server.history.get(i) + "\n");
+							System.out.println("sent");
+						}
+					}
+					
+					// Check if there is a new message, if yes, send to listener
+					String message;
+					while(true) {
+						System.out.println("Check for new message");
+						message = Server.messageStore.take();
+						output.writeBytes(message + "\n");
+						output.flush();
+						Server.history.add(line);
+						System.out.println("New message sent");
+					}
+				} else if(firstLine.equals("PRODUCER")) {
+					// Get messages from producer and store them
+					if(!isFirstLine) {
+						System.out.println(line);
+						Server.messageStore.put(line);
 					}
 				}
-			} else if(firstLine == "PRODUCER") {
-				while(true) {
-					Server.messageStore.put(input.readLine());
-				}
+				isFirstLine = false;
 			}
+			
+			input.close();
+			output.close();
+			clientSocket.close();
 		}
 		catch(IOException e) {
 			System.out.println(e);
