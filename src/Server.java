@@ -2,7 +2,6 @@
  * (c) University of Zurich 2014
  */
 
-package Assignment1;
 import java.net.*;
 import java.io.*;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -29,14 +28,75 @@ public class Server {
     /*
      * Your implementation goes here
      */
+    ServerSocket server = null;
+    Socket clientSocket = null;
     
-  }
-
+    // Try to open a server socket
+    try {
+    	server = new ServerSocket(port);
+    }
+    catch(IOException e) {
+    	System.out.println(e);
+    }
+    
+    // Loop for accepting new connections, gives them to a new thread
+    try {
+    	while(true) {
+    		clientSocket = server.accept();
+    		new Thread(new HandleClient(clientSocket)).start();
+    	}
+    }
+    catch(IOException e) {
+    	System.out.println(e);
+    }
+  }  
 }
 
 // you can use this class to handle incoming client requests
 // you are also free to implement your own class
 class HandleClient implements Runnable {
-	public void run () {        
+	private Socket clientSocket;
+	
+	public HandleClient(Socket clientSocket) {
+		this.clientSocket = clientSocket;
+	}
+	
+	public void run () {
+		try {
+			// Stream initialization
+			BufferedReader input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+			DataOutputStream output = new DataOutputStream(clientSocket.getOutputStream());
+			
+			// Reads first line to distinguish between listener and producer
+			String firstLine = input.readLine();
+			
+			// Stores top String of messages to check against new entries
+			String topString = Server.messageStore.peek();
+			String checkString;
+			
+			if(firstLine == "LISTENER") {
+				Object[] queue = Server.messageStore.toArray();
+				for(int i = 0; i < queue.length; i++) {
+					output.writeBytes(queue[i].toString());
+				}
+				while(true) {
+					checkString = Server.messageStore.peek();
+					if(topString != checkString) {
+						output.writeBytes(checkString);
+						topString = checkString;
+					}
+				}
+			} else if(firstLine == "PRODUCER") {
+				while(true) {
+					Server.messageStore.put(input.readLine());
+				}
+			}
+		}
+		catch(IOException e) {
+			System.out.println(e);
+		}
+		catch(InterruptedException e) {
+			System.out.println(e);
+		}
     }
 }

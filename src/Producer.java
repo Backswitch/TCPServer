@@ -2,9 +2,6 @@
  * (c) University of Zurich 2014
  */
 
-
-package Assignment1;
-
 import java.net.*;
 import java.io.*;
 
