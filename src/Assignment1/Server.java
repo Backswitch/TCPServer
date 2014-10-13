@@ -7,6 +7,7 @@ package Assignment1;
 import java.net.*;
 import java.io.*;
 import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.LinkedBlockingQueue;
 
 public class Server {
@@ -14,7 +15,7 @@ public class Server {
   
   // the data structure to store incoming messages, you are also free to implement your own data structure.
   static LinkedBlockingQueue<String> messageStore =  new LinkedBlockingQueue<String>();
-  static ArrayList<String> history = new ArrayList<String>();
+  static CopyOnWriteArrayList<String> history = new CopyOnWriteArrayList<String>();
 
   // Listen for incoming client connections and handle them
   public static void main(String[] args) {
@@ -60,19 +61,17 @@ public class Server {
 // you are also free to implement your own class
 class HandleClient implements Runnable {
 	private Socket clientSocket;
+	private String nl = System.getProperty("line.separator");
 	
 	public HandleClient(Socket clientSocket) {
 		this.clientSocket = clientSocket;
-		System.out.println("Thread started");
 	}
 	
 	public void run () {
 		try {
 			// Stream initialization
-			System.out.println("Initializing streams");
 			BufferedReader input = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
 			DataOutputStream output = new DataOutputStream(clientSocket.getOutputStream());
-			System.out.println("Streams initialized");
 			boolean isFirstLine = true;
 			String firstLine = null;
 			String line;
@@ -81,36 +80,38 @@ class HandleClient implements Runnable {
 			while((line = input.readLine()) != null) {
 				if(isFirstLine) {
 					firstLine = line;
-					System.out.println(firstLine);
 				}
 				
 				if(firstLine.equals("LISTENER")) {
-					// If this is the first iteration, send all past messages to listener
+					// If this is the first iteration, send all stored messages to listener
 					if(isFirstLine) {
-						for(int i = Server.history.size() - 1; i > 0; i--) {
-							System.out.println("To Listener: " + Server.history.get(i));
-							output.writeBytes(Server.history.get(i) + "\n");
-							System.out.println("sent");
+						for(int i = 0; i < Server.history.size(); i++) {
+							output.writeBytes(Server.history.get(i) + nl);
 						}
 					}
 					
 					// Check if there is a new message, if yes, send to listener
 					String message;
+					int historySize = Server.history.size();
+					int size = 0;
 					while(true) {
-						System.out.println("Check for new message");
 						message = Server.messageStore.take();
-						output.writeBytes(message + "\n");
-						output.flush();
-						Server.history.add(line);
-						System.out.println("New message sent");
+						Server.history.add(message);
+						
+						size = Server.history.size();
+						if(size > historySize){
+							output.writeBytes(Server.history.get(size - 1) + nl);
+							historySize = size;
+						}
+						
 					}
 				} else if(firstLine.equals("PRODUCER")) {
 					// Get messages from producer and store them
 					if(!isFirstLine) {
-						System.out.println(line);
 						Server.messageStore.put(line);
 					}
 				}
+				
 				isFirstLine = false;
 			}
 			

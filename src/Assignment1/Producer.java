@@ -16,6 +16,7 @@ public class Producer {
 		DataOutputStream streamOut = null;
 		BufferedReader streamIn = null;
 		Socket clientSocket = null;
+		String nl = System.getProperty("line.separator");
 
 		// create connection to server
 		// send the string "PRODUCER" to server first
@@ -57,7 +58,7 @@ public class Producer {
 	    		System.out.println(line);
 	    		if(line.equals(".bye"))
 	    			break;
-	    		streamOut.writeBytes(clientName + ":" + line);
+	    		streamOut.writeBytes(clientName + ":" + line + nl);
 	    	}
 	    	System.out.println("Producer " + clientName + " sent all messages. Closing...");
 	    	br.close();
