@@ -15,7 +15,6 @@ public class Server {
   
   // the data structure to store incoming messages, you are also free to implement your own data structure.
   static LinkedBlockingQueue<String> messageStore =  new LinkedBlockingQueue<String>();
-  static CopyOnWriteArrayList<String> history = new CopyOnWriteArrayList<String>();
 
   // Listen for incoming client connections and handle them
   public static void main(String[] args) {
@@ -76,6 +75,9 @@ class HandleClient implements Runnable {
 			String firstLine = null;
 			String line;
 			
+			//used for storing the last message that was sent
+			int lastSize = -1;
+			
 			// Reads first line to distinguish between listener and producer
 			while((line = input.readLine()) != null) {
 				if(isFirstLine) {
@@ -85,25 +87,21 @@ class HandleClient implements Runnable {
 				if(firstLine.equals("LISTENER")) {
 					// If this is the first iteration, send all stored messages to listener
 					if(isFirstLine) {
-						for(int i = 0; i < Server.history.size(); i++) {
-							output.writeBytes(Server.history.get(i) + nl);
+						Object[] temp = Server.messageStore.toArray();
+						for(int i = 0; i < temp.length; i++) {
+							output.writeBytes(temp[i] + nl);
+							lastSize++;
 						}
 					}
 					
 					// Check if there is a new message, if yes, send to listener
-					String message;
-					int historySize = Server.history.size();
-					int size = 0;
+					Object[] messageArray;
 					while(true) {
-						message = Server.messageStore.take();
-						Server.history.add(message);
-						
-						size = Server.history.size();
-						if(size > historySize){
-							output.writeBytes(Server.history.get(size - 1) + nl);
-							historySize = size;
+						messageArray = Server.messageStore.toArray();
+						while(messageArray.length - 1 > lastSize) {
+							output.writeBytes(messageArray[lastSize + 1] + nl);
+							lastSize++;
 						}
-						
 					}
 				} else if(firstLine.equals("PRODUCER")) {
 					// Get messages from producer and store them
