@@ -36,8 +36,6 @@ public class Producer {
 	    	System.err.println(e);
 	    }
 	    
-	    System.out.println("Producer connections opened");
-	    
 	    // Try to send announcement message
 	    if(streamOut != null) {
 	    	try {
@@ -48,19 +46,15 @@ public class Producer {
 	    	}
 	    }
 	    
-	    System.out.println("Announcement sent");
-	    
 	    // Try to open input file and stream contents to server
 	    try {
 	    	BufferedReader br = new BufferedReader(new FileReader(inputFileName));
 	    	String line;
 	    	while((line = br.readLine()) != null) {
-	    		System.out.println(line);
 	    		if(line.equals(".bye"))
 	    			break;
 	    		streamOut.writeBytes(clientName + ":" + line + nl);
 	    	}
-	    	System.out.println("Producer " + clientName + " sent all messages. Closing...");
 	    	br.close();
 	    }
 	    catch(FileNotFoundException e) {
@@ -70,7 +64,7 @@ public class Producer {
 	    	System.err.println(e);
 	    }
 	    
-	    // Close ressources
+	    // Close resources
 	    try {
 	    	streamOut.close();
 	    	streamIn.close();

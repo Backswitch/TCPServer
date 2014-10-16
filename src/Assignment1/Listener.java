@@ -47,10 +47,8 @@ public class Listener
     		  System.err.println(e);
     	  }
       }
-      
-      System.out.println("Announcement sent");
    	  
-   	  // Close ressources
+   	  // Close resources
    	  
    }
 }
